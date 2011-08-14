@@ -13,6 +13,8 @@ let initBallY = 50;;
 let initBallDirection = "BottomRight";;
 let ballMvt = 5;;
 
+let barMvt = 5;;
+
 (* Some "primitives" we will use to access the DOM tree *)
 let move_elt elt top left =
         elt#_get_style#_set_marginTop ((string_of_int top) ^ "px");
@@ -114,6 +116,21 @@ let advance_ball (ball:Dom.element) : unit =
 let step _ = 
         advance_ball (Dom.document#getElementById "ball");;
         
+(* Keyboard controls *)
+(* keycode 38 : up
+ * keycode 40 : down *)
+let move_player_bar y =
+        let bar = Dom.document#getElementById "right_bar" in
+        bar#_get_style#_set_marginTop (string_of_int ((int_of_string bar#_get_style#_get_marginTop) + y) ^ "px");;
+
+let mainDivKeyProcess (key:Dom.keyEvent) : bool =
+        let keycode = key#_get_keyCode in
+        if keycode = 38 then
+                (move_player_bar (- barMvt); true)
+        else if keycode = 40 then
+                (move_player_bar (+ barMvt); true)
+        else false
+
 (* The global boot function *)                
 let onload _ = 
         let doc = Dom.document in
@@ -138,6 +155,7 @@ let onload _ =
         ball#_set_className initBallDirection;
 
         (* Launch the ball ! *)
+        doc#_set_onkeypress mainDivKeyProcess;
         ignore (Dom.window#setInterval step 10.0);;
 
 Dom.window#_set_onload onload
