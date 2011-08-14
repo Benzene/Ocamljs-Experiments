@@ -1,17 +1,28 @@
 (* Some config stuff *)
+let container_top = 10;;
+let container_left = 10;;
+let container_height = 300;;
+let container_width = 700;;
+
 let bar_height = 100;;
 let bar_width = 5;;
 let ball_size = 5;;
 
-let minX = 10;;
-let maxX = 700;;
-let minY = 10;;
-let maxY = 200;;
+let left_bar_X = 10;;
+let right_bar_X = container_width - 10 - bar_width;;
+let left_bar_init_Y = 50;;
+let right_bar_init_Y = 50;;
+
+let minX = left_bar_X + bar_width;;
+let maxX = right_bar_X - ball_size;;
+let minY = 0;;
+let maxY = container_height - (2 * ball_size);;
 
 let initBallX = 250;;
 let initBallY = 50;;
 let initBallDirection = "BottomRight";;
 let ballMvt = 5;;
+let ballUpdateInterval = 100.0;;
 
 let barMvt = 5;;
 
@@ -26,7 +37,7 @@ let create_rect (doc : Dom.document) id height width =
         rect#_get_style#_set_position "absolute";
         rect#_get_style#_set_height ((string_of_int height) ^ "px");
         rect#_get_style#_set_width ((string_of_int width) ^ "px");
-        rect#_get_style#_set_border "dotted 1px black";
+        rect#_get_style#_set_border "solid 1px black";
         rect;;
 
 let create_bar doc id =
@@ -121,7 +132,9 @@ let step _ =
  * keycode 40 : down *)
 let move_player_bar y =
         let bar = Dom.document#getElementById "right_bar" in
-        bar#_get_style#_set_marginTop (string_of_int ((int_of_string bar#_get_style#_get_marginTop) + y) ^ "px");;
+        let oldY = int_of_string bar#_get_style#_get_marginTop in
+        let newY = max 0 (min (oldY + y) (container_height - bar_height)) in
+        bar#_get_style#_set_marginTop (string_of_int newY ^ "px");;
 
 let mainDivKeyProcess (key:Dom.keyEvent) : bool =
         let keycode = key#_get_keyCode in
@@ -135,6 +148,12 @@ let mainDivKeyProcess (key:Dom.keyEvent) : bool =
 let onload _ = 
         let doc = Dom.document in
         let main_div = doc#getElementById "main" in
+        main_div#_get_style#_set_position "absolute";
+        main_div#_get_style#_set_marginTop (string_of_int container_top ^ "px");
+        main_div#_get_style#_set_marginLeft (string_of_int container_left ^ "px");
+        main_div#_get_style#_set_height (string_of_int container_height ^ "px");
+        main_div#_get_style#_set_width (string_of_int container_width ^ "px");
+        main_div#_get_style#_set_border "solid 1px black";
 
         (* Create the left bar *)
         let left_bar = create_bar doc "left_bar" in
@@ -147,15 +166,15 @@ let onload _ =
 
         (* Initial status *)
         ignore (main_div#appendChild left_bar);
-        move_elt left_bar 10 10;
+        move_elt left_bar left_bar_init_Y left_bar_X;
         ignore (main_div#appendChild right_bar);
-        move_elt right_bar 10 600;
+        move_elt right_bar right_bar_init_Y right_bar_X;
         ignore (main_div#appendChild ball);
         move_elt ball initBallY initBallX;
         ball#_set_className initBallDirection;
 
         (* Launch the ball ! *)
         doc#_set_onkeypress mainDivKeyProcess;
-        ignore (Dom.window#setInterval step 10.0);;
+        ignore (Dom.window#setInterval step ballUpdateInterval);;
 
 Dom.window#_set_onload onload
