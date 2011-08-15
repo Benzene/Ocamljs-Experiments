@@ -43,6 +43,11 @@ let create_rect (doc : Dom.document) id height width =
 let create_bar doc id =
         create_rect doc id bar_height bar_width;;
 
+let getRightbarCoords _ =
+        let rbar = Dom.document#getElementById "right_bar" in
+        let yh = int_of_string rbar#_get_style#_get_marginTop in
+        (yh, yh + bar_height)
+
 (* The type representation of the ball *)
 type direction = TopLeft | TopRight | BottomLeft | BottomRight
 
@@ -119,13 +124,25 @@ let rec getNextBallPos currentX currentY direction =
                                 else
                                         (currentX + ballMvt, currentY + ballMvt, direction)
 
-let advance_ball (ball:Dom.element) : unit =
+let advance_ball (ball:Dom.element) : (int * int) =
         let (newX, newY, newDir) = getNextBallPos (getBallX ball) (getBallY ball) (getBallDirection ball) in
         move_elt ball newY newX;
-        ball#_set_className (string_of_direction newDir);; 
+        ball#_set_className (string_of_direction newDir);
+        (newX, newY);; 
 
-let step _ = 
-        advance_ball (Dom.document#getElementById "ball");;
+let isLosingPosition (x, y) : bool = 
+        let (ymin,ymax) = getRightbarCoords () in
+        if x >= maxX && (y < ymin || y > ymax) then
+                true
+        else
+                false;;
+
+let rec step _ = 
+        let newCoords = advance_ball (Dom.document#getElementById "ball") in
+        if isLosingPosition newCoords then
+                Dom.window#alert "You suck. Seriously."
+        else
+                ignore (Dom.window#setTimeout step ballUpdateInterval);;
         
 (* Keyboard controls *)
 (* keycode 38 : up
@@ -175,6 +192,6 @@ let onload _ =
 
         (* Launch the ball ! *)
         doc#_set_onkeypress mainDivKeyProcess;
-        ignore (Dom.window#setInterval step ballUpdateInterval);;
+        ignore (Dom.window#setTimeout step ballUpdateInterval);;
 
 Dom.window#_set_onload onload
