@@ -18,9 +18,12 @@ let maxX = right_bar_X - ball_size;;
 let minY = 0;;
 let maxY = container_height - (2 * ball_size);;
 
+(* The type representation of the ball *)
+type direction = TopLeft | TopRight | BottomLeft | BottomRight
+
 let initBallX = 250;;
 let initBallY = 50;;
-let initBallDirection = "BottomRight";;
+let initBallDirection = BottomRight;;
 let ballMvt = 5;;
 let ballUpdateInterval = 100.0;;
 
@@ -47,31 +50,6 @@ let getRightbarCoords _ =
         let rbar = Dom.document#getElementById "right_bar" in
         let yh = int_of_string rbar#_get_style#_get_marginTop in
         (yh, yh + bar_height)
-
-(* The type representation of the ball *)
-type direction = TopLeft | TopRight | BottomLeft | BottomRight
-
-let string_of_direction = function
-        | TopLeft -> "TopLeft"
-        | TopRight -> "TopRight"
-        | BottomLeft -> "BottomLeft"
-        | BottomRight -> "BottomRight"
-
-let direction_of_string = function
-        | "TopLeft" -> TopLeft
-        | "TopRight" -> TopRight
-        | "BottomLeft" -> BottomLeft
-        | "BottomRight" -> BottomRight
-        | _ -> BottomRight
-
-let getBallX (ball:Dom.element) : int = 
-        int_of_string ball#_get_style#_get_marginLeft
-
-let getBallY (ball:Dom.element) : int =
-        int_of_string ball#_get_style#_get_marginTop
-
-let getBallDirection (ball:Dom.element) : direction = 
-        direction_of_string ball#_get_className
 
 let create_ball doc id =
         let ball = create_rect doc id ball_size ball_size in
@@ -124,25 +102,24 @@ let rec getNextBallPos currentX currentY direction =
                                 else
                                         (currentX + ballMvt, currentY + ballMvt, direction)
 
-let advance_ball (ball:Dom.element) : (int * int) =
-        let (newX, newY, newDir) = getNextBallPos (getBallX ball) (getBallY ball) (getBallDirection ball) in
+let advance_ball (ball:Dom.element) ((oldX, oldY, oldDir):int * int * direction) : (int * int * direction) =
+        let (newX, newY, newDir) = getNextBallPos oldX oldY oldDir in
         move_elt ball newY newX;
-        ball#_set_className (string_of_direction newDir);
-        (newX, newY);; 
+        (newX, newY, newDir);; 
 
-let isLosingPosition (x, y) : bool = 
+let isLosingPosition (x, y, dir) : bool = 
         let (ymin,ymax) = getRightbarCoords () in
         if x >= maxX && (y < ymin || y > ymax) then
                 true
         else
                 false;;
 
-let rec step _ = 
-        let newCoords = advance_ball (Dom.document#getElementById "ball") in
+let rec step (coords:int * int * direction) _ = 
+        let newCoords = advance_ball (Dom.document#getElementById "ball") coords in
         if isLosingPosition newCoords then
                 Dom.window#alert "You suck. Seriously."
         else
-                ignore (Dom.window#setTimeout step ballUpdateInterval);;
+                ignore (Dom.window#setTimeout (step newCoords) ballUpdateInterval);;
         
 (* Keyboard controls *)
 (* keycode 38 : up
@@ -188,10 +165,10 @@ let onload _ =
         move_elt right_bar right_bar_init_Y right_bar_X;
         ignore (main_div#appendChild ball);
         move_elt ball initBallY initBallX;
-        ball#_set_className initBallDirection;
 
         (* Launch the ball ! *)
         doc#_set_onkeypress mainDivKeyProcess;
-        ignore (Dom.window#setTimeout step ballUpdateInterval);;
+        ignore (Dom.window#setTimeout (step (initBallX, initBallY, initBallDirection)) ballUpdateInterval);;
+ 
 
 Dom.window#_set_onload onload
